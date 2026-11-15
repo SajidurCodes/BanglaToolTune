@@ -59,6 +59,17 @@ To run the held-out comparison with the same checkpoint:
 .venv\Scripts\python.exe -u run_heldout.py --two-shot
 ```
 
+
+Download the [v0.1.0 adapter and tokenizer](https://github.com/SajidurCodes/BanglaToolTune/releases/download/v0.1.0/banglatooltune-8steps-b451e41.zip) to your Downloads folder.
+
+SHA-256 of the tested ZIP: `23fe27e6b9f55b59d6e00807ae00583645ecd1b354d703aa26ccec7b38f15854`
+
+From Windows Command Prompt, extract the checkpoint into the folder used by the demo:
+
+```cmd
+py -3.11 -m zipfile -e "%USERPROFILE%\Downloads\banglatooltune-8steps-b451e41.zip" "%USERPROFILE%\Downloads\banglatooltune-8steps-b451e41"
+```
+
 ## Repository guide
 
 | Path | Purpose |
