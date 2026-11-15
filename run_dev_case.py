@@ -5,6 +5,7 @@ from urllib.request import Request, urlopen
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", choices=["zero", "few"], default="zero")
+parser.add_argument("--case", default="dev-0001")
 args = parser.parse_args()
 
 data_dir = Path(__file__).parent / "data"
@@ -19,7 +20,31 @@ def user_message(record):
     return {"role": "user", "content": json.dumps(record["input"], ensure_ascii=False)}
 
 
-case = next(record for record in load_records("dev.jsonl") if record["id"] == "dev-0001")
+def score_reply(reply, target):
+    try:
+        prediction = json.loads(reply)
+    except json.JSONDecodeError:
+        return "FAIL: reply is not valid standalone JSON"
+
+    if target["type"] == "tool_call":
+        if prediction == target:
+            return "PASS: exact tool call"
+        return "FAIL: JSON differs from the expected tool call"
+
+    if not isinstance(prediction, dict) or set(prediction) != {"type", "message"}:
+        return "FAIL: expected an object with exactly type and message"
+    if prediction["type"] != target["type"]:
+        return f"FAIL: expected response type {target['type']}"
+    if not isinstance(prediction["message"], str) or not prediction["message"].strip():
+        return "FAIL: expected a nonempty message"
+
+    return "REVIEW: structure passed. Check the language and meaning of the message."
+
+
+cases = {record["id"]: record for record in load_records("dev.jsonl")}
+if args.case not in cases:
+    parser.error(f"Unknown case {args.case}. Available cases: {', '.join(cases)}")
+case = cases[args.case]
 
 instructions = (
     "Return one JSON object only. For a supported request, use type "
@@ -54,17 +79,7 @@ request = Request(
 with urlopen(request, timeout=180) as response:
     reply = json.load(response)["message"]["content"]
 
-print(f"Case: {case['id']} | Mode: {args.mode}")
+print(f"Case: {args.case} | Mode: {args.mode}")
 print("Raw model reply:")
 print(reply)
-
-try:
-    prediction = json.loads(reply)
-except json.JSONDecodeError:
-    print("FAIL: reply is not valid standalone JSON")
-else:
-    if prediction == case["target"]:
-        print("PASS: exact tool call")
-    else:
-        print("FAIL: JSON differs from target")
-        print("Expected:", json.dumps(case["target"], ensure_ascii=False))
+print(score_reply(reply, case["target"]))
